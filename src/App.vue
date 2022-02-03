@@ -17,6 +17,19 @@
       v-if="!isPostsLoading"
     ></post-list>
     <div v-else>Идет загрузка...</div>
+    <div class="page__wrapper">
+      <div
+        v-for="pageNumber in totalPages"
+        :key="pageNumber"
+        class="page"
+        :class="{
+          'current-page': page === pageNumber,
+        }"
+        @click="changePage(pageNumber)"
+      >
+        {{ pageNumber }}
+      </div>
+    </div>
   </div>
 </template>
 
@@ -41,6 +54,9 @@ export default {
         { value: "body", name: "По содержимому" },
       ],
       searchQuery: "",
+      page: 1,
+      limit: 10,
+      totalPages: 0,
     };
   },
   methods: {
@@ -57,15 +73,26 @@ export default {
     async fetchPosts() {
       try {
         this.isPostsLoading = true;
-
         const response = await axios.get(
-          "https://jsonplaceholder.typicode.com/posts?_limit=10"
+          "https://jsonplaceholder.typicode.com/posts",
+          {
+            params: {
+              _page: this.page,
+              _limit: this.limit,
+            },
+          }
+        );
+        this.totalPages = Math.ceil(
+          response.headers["x-total-count"] / this.limit
         );
         this.posts = response.data;
         this.isPostsLoading = false;
       } catch (error) {
         alert("Ошибка", error);
       }
+    },
+    changePage(pageNumber) {
+      this.page = pageNumber;
     },
   },
   mounted() {
@@ -84,10 +111,8 @@ export default {
     },
   },
   watch: {
-    selectedSort(newValue) {
-      this.posts.sort((post1, post2) => {
-        return post1[newValue]?.localeCompare(post2[newValue]);
-      });
+    page() {
+      this.fetchPosts();
     },
   },
 };
@@ -106,5 +131,17 @@ export default {
   display: flex;
   justify-content: space-between;
   margin: 15px 0;
+}
+.page__wrapper {
+  display: flex;
+  margin-top: 15px;
+}
+.page {
+  border: 1px solid black;
+  padding: 10px;
+  cursor: pointer;
+}
+.current-page {
+  border: 2px solid teal;
 }
 </style>
