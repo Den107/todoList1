@@ -17,7 +17,8 @@
       v-if="!isPostsLoading"
     ></post-list>
     <div v-else>Идет загрузка...</div>
-    <div class="page__wrapper">
+    <div ref="observer" class="observer"></div>
+    <!-- <div class="page__wrapper">
       <div
         v-for="pageNumber in totalPages"
         :key="pageNumber"
@@ -29,7 +30,7 @@
       >
         {{ pageNumber }}
       </div>
-    </div>
+    </div> -->
   </div>
 </template>
 
@@ -70,6 +71,28 @@ export default {
     showDialog() {
       this.dialogVisible = true;
     },
+    async loadMorePosts() {
+      try {
+        this.page += 1;
+
+        const response = await axios.get(
+          "https://jsonplaceholder.typicode.com/posts",
+          {
+            params: {
+              _page: this.page,
+              _limit: this.limit,
+            },
+          }
+        );
+        this.totalPages = Math.ceil(
+          response.headers["x-total-count"] / this.limit
+        );
+        this.posts = [...this.posts, ...response.data];
+        this.isPostsLoading = false;
+      } catch (error) {
+        alert("Ошибка", error);
+      }
+    },
     async fetchPosts() {
       try {
         this.isPostsLoading = true;
@@ -91,12 +114,23 @@ export default {
         alert("Ошибка", error);
       }
     },
-    changePage(pageNumber) {
-      this.page = pageNumber;
-    },
+    // changePage(pageNumber) {
+    //   this.page = pageNumber;
+    // },
   },
   mounted() {
     this.fetchPosts();
+    const options = {
+      rootMargin: "0px",
+      threshold: 1.0,
+    };
+    const callback = (entries, observer) => {
+      if (entries[0].isIntersecting && this.page < this.totalPages) {
+        this.loadMorePosts();
+      }
+    };
+    const observer = new IntersectionObserver(callback, options);
+    observer.observe(this.$refs.observer);
   },
   computed: {
     sortedPosts() {
@@ -111,9 +145,9 @@ export default {
     },
   },
   watch: {
-    page() {
-      this.fetchPosts();
-    },
+    // page() {
+    //   this.fetchPosts();
+    // },
   },
 };
 </script>
